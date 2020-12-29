@@ -4,12 +4,35 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    """
+    This function loads csv files, merges them and returns a dataframe
+    
+    Args(strings):
+        1. 'messages_filepath': filepath to csv file containing messages (text)
+        2. 'categories_filepath': filepath to csv file containing categories of disasters (labels)
+        
+    Returns(pandas dataframe):
+        1. df: merged dataset
+    """
+    
+    # load messages
     messages = pd.read_csv(messages_filepath, index_col='id')
+    # load categories
     categories = pd.read_csv(categories_filepath, index_col='id')
+    
+    # merge and return dataframe
     return pd.concat([messages, categories], axis=1)
 
 
 def clean_data(df):
+    """
+    Creates dummy variables for each type of disaster, extracts their respective labels, and elimitates duplicates
+    
+    Arg (dataframe):
+        1. df: dataframe with loaded data
+    Returns (dataframe):
+        1. df: dataframe with cleaned data
+    """
     # create a dataframe of the 36 individual category columns
     categories = df['categories'].str.split(";", expand=True)
 
@@ -22,14 +45,15 @@ def clean_data(df):
     
     for column in categories:
     # set each value to be the last character of the string
-    categories[column] = categories[column].str.split("-").str.get(-1)
+        categories[column] = categories[column].str.split("-").str.get(-1)
     
     # convert column from string to numeric
-    categories[column] = categories[column].astype(int)
+        categories[column] = categories[column].astype(int)
     
     # drop the original categories column from `df`
     df.drop('categories', inplace=True, axis=1)
     
+    # concatenate df with categories
     df = pd.concat([df, categories], axis =1 )
     
     # check number of duplicates
@@ -38,8 +62,15 @@ def clean_data(df):
     return df[~df.index.duplicated(keep='first')]
 
 def save_data(df, database_filename):
-    engine = create_engine('sqlite:///InsertDatabaseName.db')
-    df.to_sql('InsertTableName', engine, index=False)  
+    """
+    Store data in an sqlite database
+    
+    Args:
+        1. df: Pandas dataframe with clean data
+        2. database_filename: string with name of database
+    """
+    engine = create_engine('sqlite:///' + database_filename)
+    df.to_sql(database_filename, engine, index=False, if_exists='replace')  
 
 
 def main():
